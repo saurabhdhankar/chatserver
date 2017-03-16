@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> CHAT </title>
+    <link rel = "stylesheet" href="css/main.css">
+  </head>
+  <body>
+    <div class = "chat">
+      <input type = "text" class = "chat-name" placeholder="Enter your name">
+      <div class = "chat-messages"></div>
+      <textarea class = "chat-text-area" placeholder="Type your message"></textarea>
+      <div class = "chat-status">Status : <span>Idle</span> </div>
+    </div>
+
+    <script src = "http://127.0.0.1:8080/socket.io/socket.io.js"></script>
+
+    <script>
+    ( function(){
+      var getNode = function(s){
+        return document.querySelector(s);
+      };
+
+      //get required area
+      var textArea = getNode('.chat-text-area'),
+          chatName = getNode('.chat-name'),
+          chatMesseges = getNode('.chat-messages');
+
+      var status = getNode('.chat-status span');
+      var statusDefault = status.textContent;
+
+      var setStatus = function(latestStatus){
+        status.textContent = latestStatus;
+
+        if(latestStatus != statusDefault){
+          var delay = setTimeout(function(){
+            status.textContent = statusDefault;
+            clearInterval(delay);
+          }, 3000);
+        }
+      }
+
+      try {
+        var socket = io.connect('http://127.0.0.1:8080');
+      } catch (e) {
+        //Set status to warn user
+        console.log("Saurabh "," error in connection ", e);
+      }
+
+      if(socket){
+        // console.log("Saurabh ","Ok connected !");
+        //listen for old  messeges
+        socket.on('output' , function(data) {
+          // console.log("Saurabh ","previous messages ",data);
+          if(data.length){
+            for(var x =0 ; x < data.length ; x++){
+              var message = document.createElement('div');
+
+              message.setAttribute('class' , 'chat-message');
+              message.textContent = data[x].name + " : "+ data[x].message;
+
+              // Append to messege liste
+              chatMesseges.append(message);
+              chatMesseges.insertBefore(message , chatMesseges.firstChild);
+            }
+          }
+        })
+
+        //listen for STATUS
+        socket.on('status' , function(data){
+          setStatus((typeof data === 'object') ? data.message : data);
+          if(data.clear === true){
+            textArea.value = '';
+          }
+        });
+
+        // listen for keydown
+        textArea.addEventListener('keydown' , function(event){
+          var self = this,
+              name = chatName.value;
+          // console.log("Saurabh ","key pressed ",event.which);
+          if(event.which === 13 && event.shiftKey === false){
+            socket.emit('input' , {'name' : name , 'message' : self.value});
+            // console.log("Saurabh ","Data/Message Send");
+          }
+        });
+      }
+    })();
+    </script>
+
+  </body>
+</html>
